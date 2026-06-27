@@ -1,4 +1,5 @@
 const WEDDING_DATE = '2026-08-07T14:20:00+07:00';
+const RSVP_ENDPOINT = 'https://formsubmit.co/ajax/ekenotova@yandex.ru';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -9,8 +10,7 @@ const openButton = $('#openInvitation');
 const music = $('#weddingMusic');
 const musicToggle = $('#musicToggle');
 const floatingButton = $('.floating-rsvp');
-
-body.classList.add('locked');
+const form = $('#rsvpForm');
 
 function smoothScrollTo(selector) {
   const target = $(selector);
@@ -21,17 +21,24 @@ $$('[data-scroll]').forEach((button) => {
   button.addEventListener('click', () => smoothScrollTo(button.dataset.scroll));
 });
 
-function showToast(message) {
+function showToast(message, timeout = 4400) {
   const toast = $('#toast');
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add('show');
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('show'), 4200);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), timeout);
+}
+
+function audioReady() {
+  return Boolean(music && music.getAttribute('src'));
 }
 
 async function startMusic() {
-  if (!music) return false;
+  if (!audioReady()) {
+    if (musicToggle) musicToggle.hidden = true;
+    return false;
+  }
   try {
     music.volume = 0.72;
     await music.play();
@@ -39,7 +46,7 @@ async function startMusic() {
     return true;
   } catch (error) {
     musicToggle?.classList.add('paused');
-    showToast('Музыка готова. Нажмите на кнопку внизу, чтобы включить её.');
+    showToast('Нажмите на кнопку внизу, чтобы включить музыку.');
     return false;
   }
 }
@@ -50,7 +57,7 @@ function openInvitation() {
     body.classList.add('invitation-opened');
     body.classList.remove('locked');
     openScreen?.classList.add('hidden');
-    musicToggle.hidden = false;
+    if (musicToggle && audioReady()) musicToggle.hidden = false;
     window.scrollTo({ top: 0, behavior: 'instant' });
     startMusic();
   }, 880);
@@ -118,32 +125,52 @@ function updateCountdown() {
 updateCountdown();
 setInterval(updateCountdown, 1000);
 
-function buildRsvpText(form) {
-  const data = new FormData(form);
-  const drinks = data.getAll('drink');
-  return [
-    'RSVP на свадьбу Лидии и Дениса',
-    `Имя: ${data.get('name') || '-'}`,
-    `Присутствие: ${data.get('attendance') || '-'}`,
-    `Напитки: ${drinks.length ? drinks.join(', ') : '-'}`,
-    `Комментарий: ${data.get('comment') || '-'}`
-  ].join('\n');
+function formDataToObject(currentForm) {
+  const data = new FormData(currentForm);
+  const object = {};
+  data.forEach((value, key) => {
+    if (key === '_honey' && value) return;
+    object[key] = value;
+  });
+  object['Сайт'] = 'Свадебное приглашение Дениса и Лидии';
+  object['Дата отправки'] = new Date().toLocaleString('ru-RU');
+  return object;
 }
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-$('#rsvpForm')?.addEventListener('submit', async (event) => {
+form?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const form = event.currentTarget;
   if (!form.reportValidity()) return;
-  const text = buildRsvpText(form);
-  const copied = await copyText(text);
-  showToast(copied ? 'Анкета скопирована. Теперь её можно отправить молодожёнам.' : 'Анкета готова. Скопируйте данные вручную.');
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  const originalText = submitButton?.textContent || '';
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Отправляем...';
+  }
+
+  try {
+    const response = await fetch(RSVP_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(formDataToObject(form))
+    });
+
+    if (!response.ok) throw new Error('Не удалось отправить форму');
+
+    form.reset();
+    showToast('Спасибо! Ваш ответ отправлен.', 5200);
+  } catch (error) {
+    showToast('Не получилось отправить автоматически. Сейчас откроется резервная отправка формы.', 5200);
+    setTimeout(() => {
+      HTMLFormElement.prototype.submit.call(form);
+    }, 900);
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    }
+  }
 });
