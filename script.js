@@ -132,7 +132,7 @@ function updateCountdown() {
   const hours = Math.floor(diff / 3600000) % 24;
   const minutes = Math.floor(diff / 60000) % 60;
   const seconds = Math.floor(diff / 1000) % 60;
-  setCounter('[data-count="days"]', String(days).padStart(3, '0'));
+  setCounter('[data-count="days"]', days);
   setCounter('[data-count="hours"]', pad(hours));
   setCounter('[data-count="minutes"]', pad(minutes));
   setCounter('[data-count="seconds"]', pad(seconds));

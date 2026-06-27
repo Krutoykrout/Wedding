@@ -125,3 +125,12 @@ button,a,input{font:inherit}.grain{position:fixed;inset:0;z-index:90;pointer-eve
     color:#121725;
   }
 }
+
+/* final tweak: remove semicircle on the opening screen */
+.gate-card::before{
+  display:none!important;
+  content:none!important;
+}
+.gate-kicker{
+  margin-top:0!important;
+}
