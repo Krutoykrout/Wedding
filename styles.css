@@ -26,17 +26,7 @@ button,a,input{font:inherit}.grain{position:fixed;inset:0;z-index:90;pointer-eve
 @media (max-width:374px){.gate-card h1{font-size:58px}.gate-date{font-size:30px}.couple-photo img{height:278px}.dress-photo-grid .look{min-height:360px}.look-women{min-height:500px!important}.location-card-inside{font-size:18px}.location-card-inside b{font-size:24px}}
 
 
-/* requested cleanup: remove decorative beads and add desktop screen */
-.pearl-svg,
-.pearl-ball,
-.small-pearl,
-.shell,
-.heart-pendant,
-.intro-gate::before,
-.intro-gate::after{
-  display:none!important;
-}
-
+/* desktop screen and scoped dress-code cleanup */
 /* Оставляем только одну чёрную точку в блоке дресс-кода */
 .palette{
   width:90px!important;
@@ -124,4 +114,151 @@ button,a,input{font:inherit}.grain{position:fixed;inset:0;z-index:90;pointer-eve
     letter-spacing:-.055em;
     color:#121725;
   }
+}
+
+/* final tweak: remove semicircle on the opening screen */
+.gate-card::before{
+  display:none!important;
+  content:none!important;
+}
+.gate-kicker{
+  margin-top:0!important;
+}
+
+/* GitHub-safe black beads in dress code: inline CSS, no image/JS dependency */
+.palette{
+  display:none!important;
+}
+.dress-black-beads{
+  position:relative;
+  z-index:2;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  gap:5px;
+  width:190px;
+  height:72px;
+  margin:8px auto 44px;
+  pointer-events:none;
+}
+.dress-black-beads::before{
+  content:"";
+  position:absolute;
+  left:15px;
+  right:15px;
+  top:5px;
+  height:44px;
+  border-bottom:1px solid rgba(255,253,242,.42);
+  border-radius:0 0 120px 120px;
+  opacity:.72;
+}
+.dress-black-beads span{
+  position:relative;
+  z-index:2;
+  display:block;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 22%,rgba(255,255,255,.26),rgba(255,255,255,.04) 20%,transparent 32%),
+    radial-gradient(circle at 68% 74%,rgba(0,0,0,.88),transparent 52%),
+    linear-gradient(145deg,#2a2928,#050505 62%,#171615);
+  box-shadow:
+    inset 4px 4px 8px rgba(255,255,255,.09),
+    inset -7px -7px 12px rgba(0,0,0,.76),
+    0 8px 14px rgba(0,0,0,.32);
+  animation:bead-soft-float 4.8s ease-in-out infinite;
+}
+.dress-black-beads span:nth-child(1){transform:translateY(0) scale(.82);animation-delay:-.2s}
+.dress-black-beads span:nth-child(2){transform:translateY(11px) scale(.9);animation-delay:-.5s}
+.dress-black-beads span:nth-child(3){transform:translateY(22px) scale(.98);animation-delay:-.8s}
+.dress-black-beads span:nth-child(4){transform:translateY(30px) scale(1.08);animation-delay:-1.1s}
+.dress-black-beads span:nth-child(5){transform:translateY(22px) scale(.98);animation-delay:-1.4s}
+.dress-black-beads span:nth-child(6){transform:translateY(11px) scale(.9);animation-delay:-1.7s}
+.dress-black-beads span:nth-child(7){transform:translateY(0) scale(.82);animation-delay:-2s}
+@keyframes bead-soft-float{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.18)}
+}
+
+/* В дресс-коде оставляем только чёрный акцент, остальные декоративные элементы сайта возвращены */
+.dress .dress-ball{
+  display:none!important;
+}
+
+/* venue envelope fix: centered on mobile and the inner card stays opened */
+.venue{
+  min-height:940px!important;
+}
+.envelope{
+  width:min(335px,calc(100vw - 64px))!important;
+  height:390px!important;
+  margin:265px auto 0!important;
+  transform:rotate(-3deg)!important;
+  transform-origin:center bottom!important;
+}
+.location-card-inside{
+  left:50%!important;
+  top:20px!important;
+  width:min(284px,calc(100% - 44px))!important;
+  height:260px!important;
+  z-index:2!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:18px 16px!important;
+  font-size:18px!important;
+  line-height:1.06!important;
+  transform:translate(-50%,-168px) rotate(-.3deg)!important;
+  animation:card-slide-out-once 1.15s cubic-bezier(.17,.84,.25,1) .35s both!important;
+}
+.location-card-inside p{
+  margin:0!important;
+}
+.location-card-inside b{
+  font-size:24px!important;
+  font-weight:500!important;
+}
+.env-front{
+  z-index:4!important;
+}
+.circle-link{
+  right:12px!important;
+  top:210px!important;
+  z-index:7!important;
+}
+@keyframes card-slide-out-once{
+  0%{transform:translate(-50%,-24px) rotate(.4deg)}
+  100%{transform:translate(-50%,-168px) rotate(-.3deg)}
+}
+@media (max-width:374px){
+  .envelope{
+    width:min(304px,calc(100vw - 58px))!important;
+    height:376px!important;
+    margin-top:262px!important;
+  }
+  .location-card-inside{
+    width:min(254px,calc(100% - 42px))!important;
+    height:252px!important;
+    padding:15px 12px!important;
+    gap:7px!important;
+    font-size:16px!important;
+    transform:translate(-50%,-158px) rotate(-.3deg)!important;
+    animation:card-slide-out-once-small 1.15s cubic-bezier(.17,.84,.25,1) .35s both!important;
+  }
+  .location-card-inside b{
+    font-size:22px!important;
+  }
+  .circle-link{
+    width:82px!important;
+    height:82px!important;
+    right:8px!important;
+    top:204px!important;
+    font-size:21px!important;
+  }
+}
+@keyframes card-slide-out-once-small{
+  0%{transform:translate(-50%,-20px) rotate(.4deg)}
+  100%{transform:translate(-50%,-158px) rotate(-.3deg)}
 }
