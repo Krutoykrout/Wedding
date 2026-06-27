@@ -1,16 +1,43 @@
 const WEDDING_DATE = '2026-08-07T14:20:00+07:00';
-const RSVP_ENDPOINT = 'https://formsubmit.co/ajax/ekenotova@yandex.ru';
+const FORM_ENDPOINT = 'https://formsubmit.co/ajax/ekenotova@yandex.ru';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-const body = document.body;
-const openScreen = $('#openScreen');
-const openButton = $('#openInvitation');
 const music = $('#weddingMusic');
 const musicToggle = $('#musicToggle');
-const floatingButton = $('.floating-rsvp');
-const form = $('#rsvpForm');
+const introGate = $('#introGate');
+const openInvitation = $('#openInvitation');
+
+async function playMusic() {
+  if (!music) return false;
+  try {
+    music.volume = 0.82;
+    await music.play();
+    musicToggle?.classList.add('show');
+    musicToggle?.classList.remove('is-paused');
+    return true;
+  } catch {
+    musicToggle?.classList.add('show', 'is-paused');
+    return false;
+  }
+}
+
+openInvitation?.addEventListener('click', async () => {
+  document.body.classList.remove('gate-active');
+  await playMusic();
+  setTimeout(() => introGate?.remove(), 950);
+});
+
+musicToggle?.addEventListener('click', async () => {
+  if (!music) return;
+  if (music.paused) {
+    await playMusic();
+  } else {
+    music.pause();
+    musicToggle.classList.add('is-paused');
+  }
+});
 
 function smoothScrollTo(selector) {
   const target = $(selector);
@@ -21,62 +48,9 @@ $$('[data-scroll]').forEach((button) => {
   button.addEventListener('click', () => smoothScrollTo(button.dataset.scroll));
 });
 
-function showToast(message, timeout = 4400) {
-  const toast = $('#toast');
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add('show');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('show'), timeout);
-}
-
-function audioReady() {
-  return Boolean(music && music.getAttribute('src'));
-}
-
-async function startMusic() {
-  if (!audioReady()) {
-    if (musicToggle) musicToggle.hidden = true;
-    return false;
-  }
-  try {
-    music.volume = 0.72;
-    await music.play();
-    musicToggle?.classList.remove('paused');
-    return true;
-  } catch (error) {
-    musicToggle?.classList.add('paused');
-    showToast('Нажмите на кнопку внизу, чтобы включить музыку.');
-    return false;
-  }
-}
-
-function openInvitation() {
-  body.classList.add('opening');
-  setTimeout(() => {
-    body.classList.add('invitation-opened');
-    body.classList.remove('locked');
-    openScreen?.classList.add('hidden');
-    if (musicToggle && audioReady()) musicToggle.hidden = false;
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    startMusic();
-  }, 880);
-}
-
-openButton?.addEventListener('click', openInvitation);
-
-musicToggle?.addEventListener('click', async () => {
-  if (!music) return;
-  if (music.paused) {
-    await startMusic();
-  } else {
-    music.pause();
-    musicToggle.classList.add('paused');
-  }
-});
-
+const floatingButton = $('.floating-rsvp');
 function toggleFloatingButton() {
-  floatingButton?.classList.toggle('show', body.classList.contains('invitation-opened') && window.scrollY > 680);
+  floatingButton?.classList.toggle('show', window.scrollY > 620 && !document.body.classList.contains('gate-active'));
 }
 window.addEventListener('scroll', toggleFloatingButton, { passive: true });
 toggleFloatingButton();
@@ -88,11 +62,51 @@ const revealObserver = new IntersectionObserver((entries) => {
       revealObserver.unobserve(entry.target);
     }
   });
-}, { threshold: 0.16, rootMargin: '0px 0px -40px 0px' });
+}, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' });
 
 $$('.reveal').forEach((element) => {
   if (!element.classList.contains('visible')) revealObserver.observe(element);
 });
+
+function createPearlGradient(svg) {
+  if ($('defs #sitePearlGradient', svg)) return 'sitePearlGradient';
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `
+    <radialGradient id="sitePearlGradient" cx="34%" cy="27%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.28" stop-color="#fffff5"/>
+      <stop offset="0.63" stop-color="#d6d0c1"/>
+      <stop offset="1" stop-color="#9f998e"/>
+    </radialGradient>`;
+  svg.prepend(defs);
+  return 'sitePearlGradient';
+}
+
+function buildPearlString(svg) {
+  const gradientId = createPearlGradient(svg);
+  $$('path[data-pearls]', svg).forEach((path) => {
+    const length = path.getTotalLength();
+    const count = Number(path.dataset.pearls || 42);
+    const delayBase = Number(path.dataset.delay || 0);
+    path.style.setProperty('--len', length);
+    path.classList.add('pearl-line');
+
+    for (let i = 0; i < count; i += 1) {
+      const position = path.getPointAtLength((length * i) / Math.max(1, count - 1));
+      const pearl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      const radius = 4.2 + Math.sin(i * 0.63) * 0.9;
+      pearl.setAttribute('cx', position.x);
+      pearl.setAttribute('cy', position.y);
+      pearl.setAttribute('r', radius.toFixed(2));
+      pearl.setAttribute('fill', `url(#${gradientId})`);
+      pearl.classList.add('pearl');
+      pearl.style.animationDelay = `${delayBase + i * 0.018}s, ${1.1 + i * 0.03}s`;
+      svg.appendChild(pearl);
+    }
+  });
+}
+
+$$('.pearl-svg').forEach(buildPearlString);
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -101,10 +115,11 @@ function pad(value) {
 function setCounter(selector, value) {
   const element = $(selector);
   if (!element) return;
-  if (element.textContent !== value) {
-    element.textContent = value;
+  const next = String(value);
+  if (element.textContent !== next) {
+    element.textContent = next;
     element.animate([
-      { transform: 'translateY(-4px)', opacity: 0.7 },
+      { transform: 'translateY(-4px)', opacity: 0.65 },
       { transform: 'translateY(0)', opacity: 1 }
     ], { duration: 240, easing: 'cubic-bezier(.17,.84,.25,1)' });
   }
@@ -125,48 +140,54 @@ function updateCountdown() {
 updateCountdown();
 setInterval(updateCountdown, 1000);
 
-function formDataToObject(currentForm) {
-  const data = new FormData(currentForm);
-  const object = {};
-  data.forEach((value, key) => {
-    if (key === '_honey' && value) return;
-    object[key] = value;
+function applyParallax() {
+  const center = window.scrollY + window.innerHeight / 2;
+  $$('.parallax').forEach((element) => {
+    const depth = Number(element.dataset.depth || 0.08);
+    const box = element.getBoundingClientRect();
+    const elementCenter = window.scrollY + box.top + box.height / 2;
+    const y = (center - elementCenter) * depth;
+    element.style.setProperty('--parallax-y', `${y.toFixed(1)}px`);
+    element.style.translate = `0 var(--parallax-y)`;
   });
-  object['Сайт'] = 'Свадебное приглашение Дениса и Лидии';
-  object['Дата отправки'] = new Date().toLocaleString('ru-RU');
-  return object;
+}
+window.addEventListener('scroll', applyParallax, { passive: true });
+window.addEventListener('resize', applyParallax);
+applyParallax();
+
+function showToast(message) {
+  const toast = $('#toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), 4200);
 }
 
-form?.addEventListener('submit', async (event) => {
+$('#rsvpForm')?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
   if (!form.reportValidity()) return;
 
-  const submitButton = form.querySelector('button[type="submit"]');
-  const originalText = submitButton?.textContent || '';
+  const submitButton = $('.submit-button', form);
+  const originalText = submitButton?.textContent || 'Отправить ответ';
   if (submitButton) {
     submitButton.disabled = true;
     submitButton.textContent = 'Отправляем...';
   }
 
   try {
-    const response = await fetch(RSVP_ENDPOINT, {
+    const response = await fetch(FORM_ENDPOINT, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(formDataToObject(form))
+      headers: { 'Accept': 'application/json' },
+      body: new FormData(form)
     });
 
-    if (!response.ok) throw new Error('Не удалось отправить форму');
-
+    if (!response.ok) throw new Error('FormSubmit error');
     form.reset();
-    showToast('Спасибо! Ваш ответ отправлен.', 5200);
-  } catch (error) {
-    showToast('Не получилось отправить автоматически. Сейчас откроется резервная отправка формы.', 5200);
-    setTimeout(() => {
-      HTMLFormElement.prototype.submit.call(form);
-    }, 900);
+    showToast('Спасибо! Ответ отправлен.');
+  } catch {
+    showToast('Не удалось отправить автоматически. Попробуйте ещё раз после публикации сайта.');
   } finally {
     if (submitButton) {
       submitButton.disabled = false;
